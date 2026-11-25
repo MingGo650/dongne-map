@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>수원 관광 지도</title>
+<style>
+  html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  #map{width:100%;height:100%}
+  .pin{position:relative;transform:translate(-50%,-100%);cursor:pointer;white-space:nowrap}
+  .pin .dot{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #fff}
+  .pin .dot span{transform:rotate(45deg);font-size:15px}
+  .pin .label{position:absolute;left:50%;top:-26px;transform:translateX(-50%);background:#fff;border-radius:12px;padding:3px 8px;font-size:12px;font-weight:600;color:#222;box-shadow:0 1px 4px rgba(0,0,0,.25);display:none}
+  .pin.show .label,.pin:hover .label,#map.near .pin .label{display:block}
+  .pin.home .dot{background:#e8453c;width:36px;height:36px}
+  .card{position:absolute;left:10px;bottom:10px;z-index:10;background:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.2);font-size:13px;line-height:1.5;max-width:300px;display:none}
+  .card b{font-size:14px}
+  .card .tr{color:#555;font-size:12px}
+  .card a{color:#1a73e8;text-decoration:none;margin-right:10px}
+  .legend{position:absolute;left:10px;top:10px;z-index:10;background:rgba(255,255,255,.95);border-radius:10px;padding:6px 10px;font-size:12px;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+  .legend label{display:block;cursor:pointer;line-height:1.7}
+  .legend .all{border-top:1px solid #eee;margin-top:3px;padding-top:3px;color:#555}
+  .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#555;font-size:14px;background:#f7f7f7}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="card" id="card"></div>
+<script>
+const KAKAO_JS_KEY = "1c1ee20bba8146636ada035675b626f1";
+
+const HOME = {n:"우리 집 (스타빌)", a:"경기 수원시 팔달구 고화로 38", lat:37.2727145, lng:127.0067258};
+// {id: 카카오 장소ID, n: 이름, c: 분류, car: 차량 거리·시간, tr: 대중교통 요약, a: 주소, lat, lng, e: 아이콘}
+const PLACES = [{"id": "17985162", "n": "수원화성(성곽길)", "c": "수원화성·문화재", "e": "🏯", "car": "차량 1.9km · 7분", "tr": "버스 27-3 → 화서문로터리 하차 · 약 18분", "a": "경기 수원시 장안구 영화동 320-2", "lat": 37.28695695862249, "lng": 127.0117957433421}, {"id": "8175657", "n": "화성행궁", "c": "수원화성·문화재", "e": "🏯", "car": "차량 2.6km · 9분", "tr": "버스 11·400 → 팔달문.이안과 하차 · 약 25분", "a": "경기 수원시 팔달구 정조로 825", "lat": 37.28191449905616, "lng": 127.0140411851087}, {"id": "11387143", "n": "화홍문", "c": "수원화성·문화재", "e": "🌉", "car": "차량 2.5km · 10분", "tr": "버스 13·35 → 장안문.수원전통문화관 하차 · 약 25분", "a": "경기 수원시 팔달구 북수동 9000-1", "lat": 37.28754731502073, "lng": 127.01762834608252}, {"id": "25049860", "n": "방화수류정", "c": "수원화성·문화재", "e": "🏯", "car": "차량 2.7km · 10분", "tr": "버스 13·35 → 장안문.수원전통문화관 하차 · 약 27분", "a": "경기 수원시 팔달구 화성성곽길 233", "lat": 37.28757246778114, "lng": 127.0181335657171}, {"id": "821726308", "n": "용연", "c": "수원화성·문화재", "e": "🌿", "car": "차량 2.7km · 10분", "tr": "버스 13·35 → 장안문.수원전통문화관 하차 · 약 27분", "a": "경기 수원시 장안구 연무동 190", "lat": 37.287885990212914, "lng": 127.01838624888468}, {"id": "18133438", "n": "남수문", "c": "수원화성·문화재", "e": "🌉", "car": "차량 2.1km · 8분", "tr": "버스 13·35·46 또는 11·400 → 팔달문 하차 · 약 19분", "a": "경기 수원시 팔달구 남수동", "lat": 37.27829166523066, "lng": 127.01876277879}, {"id": "7942204", "n": "서장대", "c": "수원화성·문화재", "e": "🏯", "car": "차량 2.0km · 8분", "tr": "버스 27-3 → 병무청사거리 하차 후 팔달산 도보 17분 · 약 21분", "a": "경기 수원시 팔달구 남창동 55-23", "lat": 37.280754348163846, "lng": 127.01026122899248}, {"id": "12027576", "n": "수원화성박물관 (화성성역의궤)", "c": "체험·전시", "e": "🏛️", "car": "차량 2.9km · 10분", "tr": "버스 11·400 → 팔달구청.수원화성박물관 하차 · 약 22분", "a": "경기 수원시 팔달구 창룡대로 21", "lat": 37.28271753001405, "lng": 127.01902548921318}, {"id": "26935263", "n": "수원시립미술관", "c": "체험·전시", "e": "🖼️", "car": "차량 3.0km · 10분", "tr": "버스 13·35 → 팔달구청.화성행궁 하차 · 약 22분", "a": "경기 수원시 팔달구 정조로 833", "lat": 37.28268555674817, "lng": 127.0158771203888}, {"id": "1141207437", "n": "플라잉수원", "c": "체험·전시", "e": "🎈", "car": "차량 3.6km · 11분", "tr": "버스 11·400 → 창룡문.연무대 하차 · 약 28분", "a": "경기 수원시 팔달구 경수대로 697", "lat": 37.28728272603937, "lng": 127.02573873850277}, {"id": "18524726", "n": "남문시장 (팔달문시장)", "c": "시장", "e": "🛍️", "car": "차량 1.9km · 7분", "tr": "버스 13·35·46 또는 11·400 → 팔달문 하차 · 약 17분", "a": "경기 수원시 팔달구 팔달로3가 32", "lat": 37.27720337751226, "lng": 127.01766652560235}, {"id": "9257475", "n": "수원영동시장", "c": "시장", "e": "🛍️", "car": "차량 2.1km · 9분", "tr": "버스 13·35·46 또는 11·400 → 팔달문 하차 · 약 19분", "a": "경기 수원시 팔달구 수원천로255번길 6", "lat": 37.276893263200826, "lng": 127.018685758304}, {"id": "13594487", "n": "못골종합시장", "c": "시장", "e": "🥬", "car": "차량 3.3km · 12분", "tr": "버스 13-4·720-2·10 등 → 못골.미나리광.지동시장 하차 · 약 21분", "a": "경기 수원시 팔달구 중부대로39번길 6", "lat": 37.27546918346879, "lng": 127.0212697021584}, {"id": "9957731", "n": "지동시장 순대타운", "c": "시장", "e": "🍲", "car": "차량 2.0km · 8분", "tr": "버스 11·400 또는 13·35·46 → 팔달문 하차 · 약 19분", "a": "경기 수원시 팔달구 팔달문로 19", "lat": 37.27792030231928, "lng": 127.01959257466743}, {"id": "18166497", "n": "수원시농수산물도매시장", "c": "시장", "e": "🐟", "car": "차량 4.1km · 13분", "tr": "버스 92·92-1 → 수원시청.수원일자리센터 하차 · 약 36분 (환승 시 약 35분)", "a": "경기 수원시 권선구 세권로 243", "lat": 37.255488991499575, "lng": 127.03153992016367}, {"id": "338128637", "n": "행리단길", "c": "거리·먹거리", "e": "☕", "car": "차량 2.2km · 8분", "tr": "버스 13·35 → 장안문.수원전통문화관 하차 · 약 24분", "a": "경기 수원시 팔달구 신풍동 27-2", "lat": 37.28545737476177, "lng": 127.01412754685128}, {"id": "20810049", "n": "수원통닭거리", "c": "거리·먹거리", "e": "🍗", "car": "차량 2.2km · 8분", "tr": "버스 11·400 → 팔달문.이안과 하차 · 약 19분", "a": "경기 수원시 팔달구 남수동 158-2", "lat": 37.27952083941152, "lng": 127.01775276400183}, {"id": "380088639", "n": "일월수목원", "c": "공원·수목원", "e": "🌸", "car": "차량 5.2km · 13분", "tr": "버스 27-3 → 병무청입구에서 3번 환승 → 일월수목원 하차 · 약 28분", "a": "경기 수원시 장안구 일월로 61", "lat": 37.28835726048735, "lng": 126.97665617489689}, {"id": "1665097801", "n": "영흥수목원", "c": "공원·수목원", "e": "🌳", "car": "차량 8.6km · 24분", "tr": "버스 92·92-1 → 매교역 수인분당선 → 청명역 하차 후 도보 · 약 50분", "a": "경기 수원시 영통구 영통로 435", "lat": 37.26325330144312, "lng": 127.07101381268187}, {"id": "7869651", "n": "만석공원", "c": "공원·수목원", "e": "🌳", "car": "차량 4.3km · 14분", "tr": "버스 900·310·777 → 한일타운.경기일보 하차 · 약 39분", "a": "경기 수원시 장안구 송죽동 434", "lat": 37.30045508138835, "lng": 127.00144371408652}, {"id": "18059279", "n": "효원공원 월화원", "c": "공원·수목원", "e": "🏮", "car": "차량 3.7km · 12분", "tr": "버스 92 → 효원공원.자유총연맹 하차 · 약 33분", "a": "경기 수원시 팔달구 인계동 1117", "lat": 37.265250877459366, "lng": 127.0377355416263}, {"id": "15099364", "n": "광교호수공원", "c": "공원·수목원", "e": "🦢", "car": "차량 7.8km · 20분", "tr": "버스 11 → 광교센트럴뷰.힐스테이트레이크 하차 · 약 1시간 6분", "a": "경기 수원시 영통구 하동 1020", "lat": 37.28422109453134, "lng": 127.06692432039955}, {"id": "17577962", "n": "수원KT위즈파크", "c": "야구장·경기장", "e": "⚾", "car": "차량 3.6km · 12분", "tr": "버스 900·310·777 → 수원KT위즈파크 하차 · 약 33분 (빨간버스 7770도 운행)", "a": "경기 수원시 장안구 경수대로 893", "lat": 37.29973025329735, "lng": 127.00977204593461}, {"id": "7958497", "n": "수원월드컵경기장", "c": "야구장·경기장", "e": "⚽", "car": "차량 5.0km · 16분", "tr": "버스 13-4·720-2 → 수원월드컵경기장.아름학교 하차 · 약 44분 (환승 시 약 38분)", "a": "경기 수원시 팔달구 월드컵로 310", "lat": 37.28649766488534, "lng": 127.03692067718578}, {"id": "20589054", "n": "화성행궁 공영주차장", "c": "주차장", "e": "🅿️", "car": "차량 2.6km · 10분", "tr": "버스 11·400 → 팔달문.이안과 하차 · 약 24분", "a": "경기 수원시 팔달구 남창동 52-8", "lat": 37.28062781249495, "lng": 127.01405898777365}, {"id": "1445166892", "n": "장안동공영주차장", "c": "주차장", "e": "🅿️", "car": "차량 2.6km · 9분", "tr": "버스 66·700-2 등 → 수원전통문화관.장안동 하차 · 약 23분", "a": "경기 수원시 팔달구 장안동 52-1", "lat": 37.286614291242216, "lng": 127.01427210809388}, {"id": "20565736", "n": "화홍문공영주차장", "c": "주차장", "e": "🅿️", "car": "차량 2.4km · 8분", "tr": "버스 66·700-2 등 → 장안공원 하차 · 약 26분", "a": "경기 수원시 장안구 팔달로 280", "lat": 37.28960908712713, "lng": 127.0162574956112}, {"id": "354622584", "n": "AK플라자 수원", "c": "대형 쇼핑", "e": "🏬", "car": "차량 1.8km · 8분", "tr": "마을버스 27-3 → 수원역(마을) 하차 · 약 13분", "a": "경기 수원시 팔달구 덕영대로 924", "lat": 37.26559207864663, "lng": 127.00018038103542}, {"id": "22213490", "n": "롯데백화점 수원점 (타임빌라스)", "c": "대형 쇼핑", "e": "🏬", "car": "차량 2.6km · 8분", "tr": "마을버스 27-3 → 수원역(마을) 하차 · 약 17분", "a": "경기 수원시 권선구 세화로 134", "lat": 37.264500006681956, "lng": 126.9985254063288}, {"id": "1863118323", "n": "스타필드 수원", "c": "대형 쇼핑", "e": "🛒", "car": "차량 3.1km · 10분", "tr": "버스 27-3 → 병무청입구에서 3번 환승 → 화서역.스타필드수원 하차 · 약 19분", "a": "경기 수원시 장안구 수성로 175", "lat": 37.2874833983764, "lng": 126.99083850032736}, {"id": "1411190799", "n": "갤러리아백화점 광교점", "c": "대형 쇼핑", "e": "🏬", "car": "차량 6.8km · 16분", "tr": "버스 11 → 수원컨벤션센터.롯데몰 하차 · 약 45분", "a": "경기 수원시 영통구 광교중앙로 124", "lat": 37.28526417005068, "lng": 127.05724077384468}, {"id": "922893038", "n": "이케아 기흥점", "c": "대형 쇼핑", "e": "🛋️", "car": "차량 14.0km · 29분", "tr": "버스 92·92-1 → 매교역 수인분당선 → 상갈역에서 버스 99 → 이케아 하차 · 약 1시간 16분", "a": "경기 용인시 기흥구 신고매로 62", "lat": 37.22224576649791, "lng": 127.11568421658036}, {"id": "26613202", "n": "코스트코 공세점", "c": "대형 쇼핑", "e": "🛒", "car": "차량 14.7km · 32분", "tr": "버스 92·92-1 → 매교역 수인분당선 → 상갈역에서 버스 38-1 → 대주피오레1단지 하차 · 약 54분", "a": "경기 용인시 기흥구 탑실로 38", "lat": 37.23828368085061, "lng": 127.10883868659855}];
+const STYLE = {
+  "수원화성·문화재":{c:"#92400e",e:"🏯"},
+  "시장":{c:"#ea580c",e:"🛍️"},
+  "거리·먹거리":{c:"#ca8a04",e:"🍗"},
+  "공원·수목원":{c:"#16a34a",e:"🌳"},
+  "야구장·경기장":{c:"#2563eb",e:"⚾"},
+  "체험·전시":{c:"#db2777",e:"🎈"},
+  "주차장":{c:"#6b7280",e:"🅿️"},
+  "대형 쇼핑":{c:"#7c3aed",e:"🏬"}
+};
+
+const q = new URLSearchParams(location.search);
+const focusId = q.get("id");
+
+function showMsg(t){ document.body.insertAdjacentHTML("beforeend", `<div class="msg">${t}</div>`); }
+function esc(s){ return String(s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function route(mode, p){ return `https://map.kakao.com/link/by/${mode}/${encodeURIComponent("스타빌")},${HOME.lat},${HOME.lng}/${encodeURIComponent(p.n)},${p.lat},${p.lng}`; }
+
+function init(){
+  const map = new kakao.maps.Map(document.getElementById("map"), {center:new kakao.maps.LatLng(HOME.lat, HOME.lng), level:7});
+  map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+  const card = document.getElementById("card");
+  const overlays = [];
+
+  function addPin(p, opts){
+    const el = document.createElement("div");
+    el.className = "pin" + (opts.home ? " home" : "") + (opts.show ? " show" : "");
+    const st = STYLE[p.c] || {c:"#e8453c"};
+    const emoji = opts.home ? "🏡" : (p.e || st.e);
+    el.innerHTML = `<div class="label">${esc(p.n)}</div><div class="dot" style="background:${opts.home?"#e8453c":st.c}"><span>${emoji}</span></div>`;
+    el.onclick = () => {
+      if (opts.home) { card.innerHTML = `<b>${esc(p.n)}</b><br>${esc(p.a)}`; }
+      else {
+        card.innerHTML = `<b>${esc(p.n)}</b> · ${esc(p.c)}<br>🚗 ${esc(p.car)}<br><span class="tr">🚌 ${esc(p.tr)}</span><br>${esc(p.a)}<br>`+
+          `<a href="https://map.kakao.com/link/map/${p.id}" target="_blank">카카오맵</a><a href="${route("car",p)}" target="_blank">차로 가는 길</a><a href="${route("traffic",p)}" target="_blank">대중교통 길</a>`;
+      }
+      card.style.display = "block";
+    };
+    const ov = new kakao.maps.CustomOverlay({position:new kakao.maps.LatLng(p.lat, p.lng), content:el, yAnchor:0, zIndex: opts.home?1:(opts.show?3:2)});
+    ov.setMap(map);
+    overlays.push({ov, p});
+    return el;
+  }
+
+  addPin(HOME, {home:true, show:true});
+
+  if (focusId) {
+    const p = PLACES.find(x => x.id === focusId);
+    if (!p) { showMsg("장소를 찾지 못했어요."); return; }
+    const el = addPin(p, {show:true});
+    const b = new kakao.maps.LatLngBounds();
+    b.extend(new kakao.maps.LatLng(HOME.lat, HOME.lng)); b.extend(new kakao.maps.LatLng(p.lat, p.lng));
+    map.setBounds(b, 70, 50, 70, 50);
+    el.click();
+  } else {
+    PLACES.forEach(p => addPin(p, {}));
+    overlays.forEach(o => { if (o.p !== HOME) o.ov.setMap(null); });   // 기본값: 분류 모두 꺼둠 (집만 표시)
+    const lg = document.createElement("div"); lg.className = "legend";
+    lg.innerHTML = Object.entries(STYLE).map(([k,v]) => {
+      const n = PLACES.filter(p => p.c === k).length;
+      return n ? `<label><input type="checkbox" data-c="${k}"> <span style="color:${v.c}">●</span> ${v.e} ${k} (${n})</label>` : "";
+    }).join("") + `<label class="all"><input type="checkbox" data-all="1"> 전체 보기</label>`;
+    document.body.appendChild(lg);
+    const fit = () => {
+      const vis = overlays.filter(o => o.p !== HOME && o.ov.getMap());
+      if (!vis.length) { map.setCenter(new kakao.maps.LatLng(HOME.lat, HOME.lng)); map.setLevel(7); return; }
+      const b = new kakao.maps.LatLngBounds(); b.extend(new kakao.maps.LatLng(HOME.lat, HOME.lng));
+      vis.forEach(o => b.extend(new kakao.maps.LatLng(o.p.lat, o.p.lng)));
+      map.setBounds(b, 60, 60, 60, 160);
+    };
+    lg.addEventListener("change", e => {
+      if (e.target.dataset.all) {
+        lg.querySelectorAll("input[data-c]").forEach(i => i.checked = e.target.checked);
+        overlays.forEach(o => { if (o.p !== HOME) o.ov.setMap(e.target.checked ? map : null); });
+      } else {
+        const c = e.target.dataset.c, on = e.target.checked;
+        overlays.forEach(o => { if (o.p.c === c) o.ov.setMap(on ? map : null); });
+      }
+      card.style.display = "none";
+      fit();
+    });
+  }
+  kakao.maps.event.addListener(map, "click", () => card.style.display = "none");
+  const mapEl = document.getElementById("map");
+  const syncLabels = () => mapEl.classList.toggle("near", map.getLevel() <= 4);
+  kakao.maps.event.addListener(map, "zoom_changed", syncLabels); syncLabels();
+}
+
+const s = document.createElement("script");
+s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
+s.onload = () => kakao.maps.load(init);
+s.onerror = () => showMsg("카카오 지도를 불러오지 못했어요.");
+document.head.appendChild(s);
+</script>
+</body>
+</html>
