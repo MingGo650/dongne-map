@@ -77,10 +77,11 @@ function init(){
     el.click();
   } else {
     PLACES.forEach(p => addPin(p, {}));
+    overlays.forEach(o => { if (o.p !== HOME) o.ov.setMap(null); });   // 기본값: 분류 모두 꺼둠 (집만 표시)
     map.setLevel(5);
     // 분류 필터
     const lg = document.createElement("div"); lg.className = "legend";
-    lg.innerHTML = Object.entries(STYLE).map(([k,v]) => `<label><input type="checkbox" checked data-c="${k}"> <span style="color:${v.c}">●</span> ${k}</label>`).join("");
+    lg.innerHTML = Object.entries(STYLE).map(([k,v]) => `<label><input type="checkbox" data-c="${k}"> <span style="color:${v.c}">●</span> ${k}</label>`).join("");
     document.body.appendChild(lg);
     lg.addEventListener("change", e => {
       const c = e.target.dataset.c, on = e.target.checked;
