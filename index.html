@@ -16,6 +16,110 @@
   .card{position:absolute;left:10px;bottom:10px;z-index:10;background:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.2);font-size:13px;max-width:280px;display:none}
   .card b{font-size:14px}
   .card a{color:#1a73e8;text-decoration:none;margin-right:10px}
+  .legend{position:absolute;left:10px;top:10px;z-index:10;background:rgba(255,255,255,.95);border-radius:10px;padding:6px 10px;font-size:12px;box-shadow:0 1px 6px rgba(0,0,0,.2)}
+  .legend label{display:block;cursor:pointer;line-height:1.7}
+  .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#555;font-size:14px;background:#f7f7f7}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="card" id="card"></div>
+<script>
+// ▼ 카카오 개발자 사이트에서 받은 JavaScript 키를 따옴표 안에 붙여 넣으세요.
+const KAKAO_JS_KEY = "1c1ee20bba8146636ada035675b626f1";
+
+const HOME = {n:"우리 집 (스타빌)", a:"경기 수원시 팔달구 고화로 38", lat:37.2727145, lng:127.0067258};
+const PLACES = [{"id": "407619756", "n": "CU 고등웰빙점", "c": "필수 인프라", "w": 2, "a": "경기 수원시 팔달구 고화로31번길 3", "lat": 37.27203973, "lng": 127.00681898}, {"id": "607460607", "n": "예스마트", "c": "필수 인프라", "w": 3, "a": "경기 수원시 팔달구 고화로 50", "lat": 37.27365443, "lng": 127.00627793}, {"id": "1661317018", "n": "크린토피아 코인워시 수원역푸르지오자이점", "c": "필수 인프라", "w": 16, "a": "경기 수원시 팔달구 고등로 13", "lat": 37.27307162, "lng": 126.99866392}, {"id": "1749730044", "n": "언올드첨", "c": "카페", "w": 8, "a": "경기 수원시 팔달구 고화로39번길 76", "lat": 37.26971875, "lng": 127.0047533}, {"id": "8115691", "n": "팔달공원", "c": "필수 인프라", "w": 23, "a": "경기 수원시 팔달구 팔달산로 108", "lat": 37.2776043, "lng": 127.01036454}, {"id": "2122290241", "n": "팔선약국", "c": "필수 인프라", "w": 9, "a": "경기 수원시 팔달구 고매로 1", "lat": 37.26990258, "lng": 127.00431248}, {"id": "1749335607", "n": "매산약방", "c": "술집", "w": 7, "a": "경기 수원시 팔달구 고화로13번길 36", "lat": 37.27011516, "lng": 127.00591798}, {"id": "1339551034", "n": "고등동 행정복지센터", "c": "필수 인프라", "w": 12, "a": "경기 수원시 팔달구 고등로 37", "lat": 37.27339149, "lng": 127.00110495}, {"id": "27119348", "n": "롯데마트 타임빌라스 수원점", "c": "필수 인프라", "w": 27, "a": "경기 수원시 권선구 세화로 134", "lat": 37.26353403, "lng": 126.99597536}, {"id": "10483918", "n": "서호공원", "c": "필수 인프라", "w": 37, "a": "경기 수원시 팔달구 서호천길 815", "lat": 37.2804841, "lng": 126.9905597}, {"id": "853123055", "n": "브라운베이크", "c": "카페", "w": 10, "a": "경기 수원시 팔달구 고등로59번길 44", "lat": 37.27531967, "lng": 127.00356749}, {"id": "834341974", "n": "빛물결", "c": "술집", "w": 13, "a": "경기 수원시 팔달구 고등로 28", "lat": 37.27260218, "lng": 126.99976097}, {"id": "1119602284", "n": "롤링파스타 수원역점", "c": "맛집", "w": 16, "a": "경기 수원시 팔달구 향교로1번길 2", "lat": 37.26771313, "lng": 127.00118717}, {"id": "16342200", "n": "GS25 매산로2가점", "c": "필수 인프라", "w": 4, "a": "경기 수원시 팔달구 고화로13번길 2", "lat": 37.27073318, "lng": 127.00764417}, {"id": "1863291877", "n": "미드웨이브", "c": "카페", "w": 3, "a": "경기 수원시 팔달구 고화로 18", "lat": 37.27121343, "lng": 127.00767353}, {"id": "26981264", "n": "수원역", "c": "필수 인프라", "w": 20, "a": "경기 수원시 팔달구 덕영대로 924", "lat": 37.26579031, "lng": 127.0000947}, {"id": "1672251942", "n": "이치하치 고등점", "c": "맛집", "w": 4, "a": "경기 수원시 팔달구 고화로13번길 2", "lat": 37.27081427, "lng": 127.00759908}, {"id": "883960674", "n": "신림춘천집 수원역점", "c": "맛집", "w": 8, "a": "경기 수원시 팔달구 향교로 48", "lat": 37.26917897, "lng": 127.00610844}, {"id": "1712650854", "n": "또와마트", "c": "필수 인프라", "w": 9, "a": "경기 수원시 팔달구 고매로 1", "lat": 37.26997017, "lng": 127.00413886}, {"id": "18166578", "n": "수원버스터미널", "c": "필수 인프라", "w": 55, "a": "경기 수원시 권선구 경수대로 270", "lat": 37.25108002, "lng": 127.01982909}, {"id": "8766434", "n": "고등반점", "c": "맛집", "w": 10, "a": "경기 수원시 팔달구 팔달로52번길 43", "lat": 37.27506378, "lng": 127.00307588}];
+const STYLE = {"필수 인프라":{c:"#3b82f6",e:"🏪"},"맛집":{c:"#f97316",e:"🍽️"},"카페":{c:"#92400e",e:"☕"},"술집":{c:"#8b5cf6",e:"🍷"}};
+
+const q = new URLSearchParams(location.search);
+const focusId = q.get("id");                 // ?id=카카오장소ID → 그 장소만 크게
+const ICON = {"CU 고등웰빙점":"🏪","GS25 매산로2가점":"🏪","예스마트":"🛒","또와마트":"🛒","롯데마트 타임빌라스 수원점":"🛒","팔선약국":"💊","크린토피아 코인워시 수원역푸르지오자이점":"🧺","고등동 행정복지센터":"🏛️","팔달공원":"🌳","서호공원":"🌳","수원역":"🚉","수원버스터미널":"🚌"};
+
+function showMsg(t){ document.body.insertAdjacentHTML("beforeend", `<div class="msg">${t}</div>`); }
+function esc(s){ return s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function init(){
+  const map = new kakao.maps.Map(document.getElementById("map"), {center:new kakao.maps.LatLng(HOME.lat, HOME.lng), level:4});
+  map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+  const card = document.getElementById("card");
+  const overlays = [];
+
+  function addPin(p, opts){
+    const el = document.createElement("div");
+    el.className = "pin" + (opts.home ? " home" : "") + (opts.show ? " show" : "");
+    const st = STYLE[p.c] || {c:"#e8453c"};
+    const emoji = opts.home ? "🏡" : (ICON[p.n] || st.e);
+    el.innerHTML = `<div class="label">${esc(p.n)}</div><div class="dot" style="background:${opts.home?"#e8453c":st.c}"><span>${emoji}</span></div>`;
+    el.onclick = () => {
+      if (opts.home) { card.innerHTML = `<b>${esc(p.n)}</b><br>${esc(p.a)}`; }
+      else {
+        const walk = `https://map.kakao.com/link/by/walk/${encodeURIComponent("스타빌")},${HOME.lat},${HOME.lng}/${encodeURIComponent(p.n)},${p.lat},${p.lng}`;
+        card.innerHTML = `<b>${esc(p.n)}</b> · 도보 ${p.w}분<br>${esc(p.a)}<br><a href="https://map.kakao.com/link/map/${p.id}" target="_blank">카카오맵에서 보기</a><a href="${walk}" target="_blank">걸어가는 길</a>`;
+      }
+      card.style.display = "block";
+    };
+    const ov = new kakao.maps.CustomOverlay({position:new kakao.maps.LatLng(p.lat, p.lng), content:el, yAnchor:0, zIndex: opts.home?3:(opts.show?2:1)});
+    ov.setMap(map);
+    overlays.push({ov, p});
+    return el;
+  }
+
+  addPin(HOME, {home:true, show:!focusId});
+
+  if (focusId) {
+    const p = PLACES.find(x => x.id === focusId);
+    if (!p) { showMsg("장소를 찾지 못했어요."); return; }
+    const el = addPin(p, {show:true});
+    const b = new kakao.maps.LatLngBounds();
+    b.extend(new kakao.maps.LatLng(HOME.lat, HOME.lng)); b.extend(new kakao.maps.LatLng(p.lat, p.lng));
+    if (p.w <= 25) map.setBounds(b, 60, 60, 60, 60); else { map.setCenter(new kakao.maps.LatLng(p.lat, p.lng)); map.setLevel(4); }
+    el.click();
+  } else {
+    PLACES.forEach(p => addPin(p, {}));
+    map.setLevel(5);
+    // 분류 필터
+    const lg = document.createElement("div"); lg.className = "legend";
+    lg.innerHTML = Object.entries(STYLE).map(([k,v]) => `<label><input type="checkbox" checked data-c="${k}"> <span style="color:${v.c}">●</span> ${k}</label>`).join("");
+    document.body.appendChild(lg);
+    lg.addEventListener("change", e => {
+      const c = e.target.dataset.c, on = e.target.checked;
+      overlays.forEach(o => { if (o.p.c === c) o.ov.setMap(on ? map : null); });
+    });
+  }
+  kakao.maps.event.addListener(map, "click", () => card.style.display = "none");
+}
+
+if (!KAKAO_JS_KEY || KAKAO_JS_KEY.startsWith("여기에")) {
+  showMsg("카카오 JavaScript 키를 넣으면 지도가 표시돼요.");
+} else {
+  const s = document.createElement("script");
+  s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
+  s.onload = () => kakao.maps.load(init);
+  s.onerror = () => showMsg("카카오 지도를 불러오지 못했어요. 키와 등록한 사이트 도메인을 확인해 주세요.");
+  document.head.appendChild(s);
+}
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>우리 동네 지도</title>
+<style>
+  html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  #map{width:100%;height:100%}
+  .pin{position:relative;transform:translate(-50%,-100%);cursor:pointer;white-space:nowrap}
+  .pin .dot{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.35);border:2px solid #fff}
+  .pin .dot span{transform:rotate(45deg);font-size:15px}
+  .pin .label{position:absolute;left:50%;top:-26px;transform:translateX(-50%);background:#fff;border-radius:12px;padding:3px 8px;font-size:12px;font-weight:600;color:#222;box-shadow:0 1px 4px rgba(0,0,0,.25);display:none}
+  .pin.show .label,.pin:hover .label{display:block}
+  .pin.home .dot{background:#e8453c;width:36px;height:36px}
+  .card{position:absolute;left:10px;bottom:10px;z-index:10;background:#fff;border-radius:12px;padding:10px 14px;box-shadow:0 2px 10px rgba(0,0,0,.2);font-size:13px;max-width:280px;display:none}
+  .card b{font-size:14px}
+  .card a{color:#1a73e8;text-decoration:none;margin-right:10px}
   .legend{position:absolute;right:10px;top:10px;z-index:10;background:rgba(255,255,255,.95);border-radius:10px;padding:6px 10px;font-size:12px;box-shadow:0 1px 6px rgba(0,0,0,.2)}
   .legend label{display:block;cursor:pointer;line-height:1.7}
   .msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:#555;font-size:14px;background:#f7f7f7}
